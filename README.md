@@ -131,22 +131,17 @@ python pwn_exp.py ssl
 libc_addr = leak_libc()  # 自动处理 u64(p.recvuntil(b'\x7f')[-6:].ljust(8, b'\x00'))
 lss(libc_addr)  # 可以直接传入值也可以传入变量名
 
-# 接收十六进制地址
-hex_addr = leak_hex()  # 自动处理 p.recvuntil(b'0x') + int(p.recv(12), 16)
+# 接收字符串地址
+str_addr = leak_str()  # 自动处理 p.recvuntil(b'0x') + int(p.recv(12), 16)
 
-# 按架构接收地址
-addr32 = recv_addr_32()  # 32位地址
-addr64 = recv_addr_64()  # 64位地址
+# 接收字节地址
+addr = leak_hex()
 
-# 接收字节
-addr = leak_addr(8)
+# 接受字符串canary
+canary = leak_canary()
 
 # 智能计算libc基址
-#64位
 libc_base = leak_base(0x80aa0)  # 传入已知函数偏移
-libc_base = leak_base(0x80aa0 , 64)
-#32位
-libc_base = leak_base(0x80aa0 , 32)
 ```
 
 ### 5. 增强日志功能
@@ -157,13 +152,6 @@ addr = 0x400123
 lss("addr")  # 传入变量名字符串
 lss(addr)    # 直接传入变量值
 
-# 成功日志
-ls("成功信息")
-```
-
-### 6. 日志增强
-
-```python
 # 高亮显示变量
 addr = 0x400123
 lss("addr")  # 显示: addr ---> 0x400123
@@ -173,6 +161,51 @@ lsl(payload) # 显示: payload ---> 64 (0x40)
 # 成功日志
 ls("成功信息")
 ```
+
+### 6. 初始化加载环境
+
+```python
+# 加载elf文件、libc文件
+set_binary(elf,libc)
+# 加载elf文件
+set_elf(elf)
+# 加载libc文件
+set_libc(libc)
+# 设置elf文件基地址
+set_elf_base(elf_base)
+# 设置libc文件基地址
+set_libc_base(libc_base)
+
+```
+
+### 7. 获取函数或字符串偏移
+
+```python
+# 初始化加载环境后
+# 获取plt、got表
+puts_plt/got = plt\got("puts")
+
+# 获取elf文件函数偏移
+puts_addr = elf_sym("puts")
+
+# 获取elf文件字符串偏移
+string = elf_str("string")
+
+# 获取libc文件函数偏移
+puts_addr = libc_sym("puts")
+
+# 获取libc文件字符串偏移
+string = libc_str("string")
+
+# 获取libc文件system函数偏移
+system_addr = system()
+
+# 获取libc文件/bin/sh字符串偏移
+binsh_addr = binsh()
+
+```
+
+
 
 ## 🎨 完整示例
 

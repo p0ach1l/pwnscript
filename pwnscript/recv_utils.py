@@ -107,7 +107,6 @@ def leak_hex( p=None):
         return recv_addr_32(p)
         
 
-
 def leak_str(p=None):
     arch = context.arch
     """recv_str_addr的别名"""
