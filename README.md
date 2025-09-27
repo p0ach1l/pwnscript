@@ -1,12 +1,16 @@
-# README
+# pwnscript - CTF PWN 工具包
 
-## 0x00
+一个精简而强大的CTF PWN题目辅助工具包，为CTF选手提供便捷的宏定义和连接管理功能。
 
-作为一个终极懒人，平常刷pwn题的各种模式切换显示十分繁琐，于是就诞生了这个小小的python库
+## 🚀 新版本特性
 
-## 0x01 安装pwnscript库
+### v2.1.0 新增功能
+- **宏定义支持**: 常用pwntools函数的快捷方式
+- **SSL连接支持**: 支持加密的远程连接
+- **精简架构**: 移除异架构支持，专注本地架构
+- **智能连接管理**: 自动设置当前连接
 
-安装教程
+## 📦 安装
 
 ```bash
 git clone https://github.com/p0ach1l/pwnscript.git
@@ -14,77 +18,215 @@ cd pwnscript
 pip install -e .
 ```
 
-## 0x02功能介绍 
+### 依赖要求
+- Python 3.6+
+- pwntools >= 4.8.0
 
-用一个示例代码说明一下功能	
+## 🎯 快速开始
+
+### 基础使用示例
 
 ```python
 from pwn import *
-from ctypes import *
-from LibcSearcher import *
 from pwnscript import *
 
+# 题目信息
+filename = "./binary"
+url = "pwn.example.com:1337"
 
-filename = 
-url = ''
+# GDB调试脚本
 gdbscript = '''
-  b * main
+b main
+b *main+100
+c
 '''
+
+# 设置环境
 set_context(log_level='debug', arch='amd64', os='linux', endian='little', timeout=5)
-p = pr(url=url , filename=filename , gdbscript=gdbscript , framepath='')
+
+# 连接目标（自动设置为当前连接）
+p = pr(url=url, filename=filename, gdbscript=gdbscript)
 elf = ELF(filename)
 
+# 使用宏定义进行交互
+sl(b"Hello World")      # 等同于 p.sendline(b"Hello World")
+data = rl()             # 等同于 data = p.recvline()
+lss(data)             # 高亮显示变量
 
-p.interactive()
+# 构造payload
+payload = flat(b'A'*64, p64(0x400123))
+sl(payload)
 
+# 进入交互模式
+ia()                    # 等同于 p.interactive()
 ```
 
-###  连接模块
+## 🛠 核心功能
 
-1. 默认本地跑脚本
-
-   ```python
-   python pwn10.py
-   ```
-
-2. de调试模式
-
-   我的设置了分屏，所有需要tmux，可以根据需求修改
-
-   ```python
-   python pwn10.py de
-   ```
-
-   其中下断点填充gdbscript即可，支持多个断点同时下，以及各种pwndbg语法
-
-3. re远端模式
-
-   ```python
-   python pwn10.py re
-   ```
-
-在拿到一个题只需要完善一下对应的filename、url就能快速刷题，丝滑切换各种模式
-
-### 初始化context
-
-通过调用set_context方法可以实现初始化set_context，可以根据个人习惯修改
+### 1. 连接管理
 
 ```python
-ef set_context(log_level='debug', arch='amd64', os='linux', endian='little', timeout=5):
-    context.update(
-        log_level=log_level, 
-        arch=arch, 
-        os=os, 
-        endian=endian, 
-        timeout=timeout, 
-        terminal=['tmux', 'splitw', '-h', '-p', '80']
+# 本地连接
+p = pr(filename='./binary')
+
+# 远程连接
+p = pr(url='host:port')
+
+# SSL远程连接
+p = pr(url='host:port', ssl_mode=True)
+
+# 调试模式
+p = pr(filename='./binary', gdbscript='b main')
+```
+
+### 2. 运行模式
+
+```bash
+# 本地运行
+python pwn_exp.py
+
+# 调试模式 (需要tmux)
+python pwn_exp.py de
+
+# 远程模式
+python pwn_exp.py re
+
+# SSL远程模式
+python pwn_exp.py ssl
+```
+
+### 3. 宏定义参考
+
+#### 发送数据宏
+
+| 宏定义 | 原函数 | 描述 |
+|---------|----------|---------|
+| `s(data)` | `p.send(data)` | 发送数据 |
+| `sl(data)` | `p.sendline(data)` | 发送数据并换行 |
+| `sa(delim, data)` | `p.sendafter(delim, data)` | 等待分隔符后发送 |
+| `sla(delim, data)` | `p.sendlineafter(delim, data)` | 等待分隔符后发送并换行 |
+
+#### 接收数据宏
+
+| 宏定义 | 原函数 | 描述 |
+|---------|----------|---------|
+| `r(numb)` | `p.recv(numb)` | 接收指定字节 |
+| `rl()` | `p.recvline()` | 接收一行 |
+| `ra(delim)` | `p.recvafter(delim)` | 接收到分隔符 |
+| `ru(delim)` | `p.recvuntil(delim)` | 接收直到分隔符 |
+| `rt(timeout)` | `p.recvtimeout(timeout)` | 超时接收 |
+
+#### 交互宏
+
+| 宏定义 | 原函数 | 描述 |
+|---------|----------|---------|
+| `ia()` | `p.interactive()` | 进入交互模式 |
+| `cl()` | `p.close()` | 关闭连接 |
+
+
+### 4. 接收数据工具
+
+```python
+# 自动处理libc地址泄露
+libc_addr = leak_libc()  # 自动处理 u64(p.recvuntil(b'\x7f')[-6:].ljust(8, b'\x00'))
+lss(libc_addr)  # 可以直接传入值也可以传入变量名
+
+# 接收十六进制地址
+hex_addr = leak_hex()  # 自动处理 p.recvuntil(b'0x') + int(p.recv(12), 16)
+
+# 按架构接收地址
+addr32 = recv_addr_32()  # 32位地址
+addr64 = recv_addr_64()  # 64位地址
+
+# 接收字节
+addr = leak_addr(8)
+
+# 智能计算libc基址
+#64位
+libc_base = leak_base(0x80aa0)  # 传入已知函数偏移
+libc_base = leak_base(0x80aa0 , 64)
+#32位
+libc_base = leak_base(0x80aa0 , 32)
+```
+
+### 5. 增强日志功能
+
+```python
+# 高亮显示变量 - 支持两种用法
+addr = 0x400123
+lss("addr")  # 传入变量名字符串
+lss(addr)    # 直接传入变量值
+
+# 成功日志
+ls("成功信息")
+```
+
+### 6. 日志增强
+
+```python
+# 高亮显示变量
+addr = 0x400123
+lss("addr")  # 显示: addr ---> 0x400123
+# 高亮显示字节数
+payload = b'a'*64
+lsl(payload) # 显示: payload ---> 64 (0x40)
+# 成功日志
+ls("成功信息")
+```
+
+## 🎨 完整示例
+
+### 基础栈溢出示例
+
+```python
+#!/usr/bin/env python3
+from pwn import *
+from pwnscript import *
+
+# 题目信息
+filename = "./vuln"
+url = "pwn.example.com:1337"
+
+gdbscript = '''
+b main
+b *vuln+50
+c
+'''
+
+# 设置环境
+set_context(log_level='debug', arch='amd64', os='linux')
+
+def exploit():
+    # 连接目标
+    p = pr(url=url, filename=filename, gdbscript=gdbscript)
+    elf = ELF(filename)
+    
+    # 构造payload
+    offset = 72
+    system_addr = 0x7ffff7a52390
+    binsh_addr = 0x7ffff7b97e9a
+    pop_rdi = 0x400743
+    
+    payload = flat(
+        b'A' * offset,
+        p64(pop_rdi),
+        p64(binsh_addr),
+        p64(system_addr)
     )
+    
+    # 使用宏定义发送
+    sl(payload)
+    
+    # 高亮显示payload长度
+    lss("payload")
+    
+    # 进入交互
+    ia()
+
+if __name__ == "__main__":
+    exploit()
 ```
 
-### 高亮变量打印
+---
 
-```python
-lss("addr")
-```
-
-![image-20250105171718098](https://cdn.jsdelivr.net/gh/p0ach1l/Picture@master/test/image-20250105171718098.png)
+作为一个终极懒人，平常刷pwn题的各种模式切换显示十分繁琐，于是就诞生了这个小小的python库。现在增加了宏定义支持，让写PWN脚本更加高效！
