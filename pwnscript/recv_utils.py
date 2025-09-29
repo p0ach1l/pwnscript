@@ -80,7 +80,7 @@ def recv_addr_64(p=None):
         p = get_current_connection()
         if p is None:
             raise RuntimeError("No active connection. Use pr() to establish connection first.")
-    data = p.recv(6)
+    data = p.recv(6).ljust(8, b'\x00')
     addr = u64(data)
     return addr
 
